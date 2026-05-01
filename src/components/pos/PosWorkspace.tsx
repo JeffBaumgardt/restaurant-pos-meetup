@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import DayReceiptsLog from "@/components/pos/DayReceiptsLog";
 import FloorCanvas from "@/components/pos/FloorCanvas";
 import KitchenDock from "@/components/pos/KitchenDock";
 import PaymentModal from "@/components/pos/PaymentModal";
@@ -10,6 +12,7 @@ import { usePosWorkspace } from "@/components/pos/usePosWorkspace";
 
 export default function PosWorkspace() {
   const pos = usePosWorkspace();
+  const [paymentModalKey, setPaymentModalKey] = useState(0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-zinc-950 text-zinc-50">
@@ -21,6 +24,7 @@ export default function PosWorkspace() {
           selectedTableId={pos.selectedTableId}
           nowMs={pos.nowMs}
           onSelectTable={pos.handleSelectTable}
+          onClearSelection={pos.handleClearTableSelection}
         />
 
         <TableServicePanel
@@ -38,9 +42,20 @@ export default function PosWorkspace() {
           onSubmitOrder={pos.handleSubmitOrder}
           onMarkDelivered={pos.handleMarkDelivered}
           onOpenTicketPreview={() => pos.setTicketOpen(true)}
-          onOpenPay={() => pos.setPayOpen(true)}
+          onOpenPay={() => {
+            setPaymentModalKey((k) => k + 1);
+            pos.setPayOpen(true);
+          }}
+          onClearTableSelection={pos.handleClearTableSelection}
         />
       </div>
+
+      <DayReceiptsLog
+        hydrated={pos.hydrated}
+        businessDayKey={pos.businessDayKey}
+        receipts={pos.dayReceipts}
+        grandTotalCents={pos.dayReceiptGrandTotalCents}
+      />
 
       <KitchenDock
         orders={pos.kitchenOrders}
@@ -57,6 +72,7 @@ export default function PosWorkspace() {
       />
 
       <PaymentModal
+        key={paymentModalKey}
         open={pos.payOpen}
         totalCents={pos.tabTotal}
         onClose={() => pos.setPayOpen(false)}

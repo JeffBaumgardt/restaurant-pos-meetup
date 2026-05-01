@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findFloorTable } from "@/lib/table-layout";
 import { addMealLine, decrementMealLine } from "@/lib/meal-draft";
 import {
@@ -10,16 +10,24 @@ import {
 } from "@/lib/table-selection";
 import { transitionCookingOrder } from "@/lib/kitchen";
 import { tableTabTotalCents, tabOrdersForTable } from "@/lib/tab-totals";
-import type { OrderRow, PaymentMethod, TableSessionRow } from "@/lib/types";
+import { buildDayReceiptFromClosedTab, sortReceiptsNewestFirst } from "@/lib/day-receipts";
+import type {
+  DayReceiptRow,
+  OrderRow,
+  PaymentMethod,
+  TableSessionRow,
+} from "@/lib/types";
 import {
+  appendDayReceipt,
   deleteOrdersForTable,
   deleteSession,
   loadPosState,
+  loadReceiptsForBusinessDay,
   putOrder,
   resetAllPosData,
   upsertSession,
 } from "@/lib/db";
-import { timestamp } from "@/lib/time";
+import { businessDayKeyLocal, timestamp } from "@/lib/time";
 
 export type UsePosWorkspaceOptions = {
   /**
@@ -39,11 +47,15 @@ export function usePosWorkspace(options: UsePosWorkspaceOptions = {}) {
   const [hydrated, setHydrated] = useState(false);
   const [ticketOpen, setTicketOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [dayReceipts, setDayReceipts] = useState<DayReceiptRow[]>([]);
 
   const refresh = useCallback(async () => {
     const data = await loadPosState();
     setSessions(Object.fromEntries(data.sessions.map((s) => [s.tableId, s])));
     setOrders(data.orders);
+    const dayKey = businessDayKeyLocal(timestamp());
+    const receipts = await loadReceiptsForBusinessDay(dayKey);
+    setDayReceipts(sortReceiptsNewestFirst(receipts));
   }, []);
 
   useEffect(() => {
@@ -79,6 +91,19 @@ export function usePosWorkspace(options: UsePosWorkspaceOptions = {}) {
     return () => window.clearInterval(id);
   }, [refresh, kitchenPollIntervalMs]);
 
+  const businessDayKey = useMemo(() => businessDayKeyLocal(nowMs), [nowMs]);
+  const prevBusinessDayKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (prevBusinessDayKeyRef.current === null) {
+      prevBusinessDayKeyRef.current = businessDayKey;
+      return;
+    }
+    if (prevBusinessDayKeyRef.current === businessDayKey) return;
+    prevBusinessDayKeyRef.current = businessDayKey;
+    void refresh();
+  }, [businessDayKey, refresh]);
+
   const kitchenOrders = useMemo(
     () => orders.filter((o) => o.status === "cooking" || o.status === "ready"),
     [orders],
@@ -99,8 +124,19 @@ export function usePosWorkspace(options: UsePosWorkspaceOptions = {}) {
       ? tableTabTotalCents(orders, selectedTableId)
       : 0;
 
+  const dayReceiptGrandTotalCents = useMemo(
+    () => dayReceipts.reduce((acc, r) => acc + r.totalCents, 0),
+    [dayReceipts],
+  );
+
   async function handleSelectTable(tableId: string) {
     setSelectedTableId(tableId);
+  }
+
+  function handleClearTableSelection() {
+    setSelectedTableId(null);
+    setPayOpen(false);
+    setTicketOpen(false);
   }
 
   async function handleEnsureSession(tableId: string) {
@@ -163,13 +199,23 @@ export function usePosWorkspace(options: UsePosWorkspaceOptions = {}) {
 
   async function handlePay(method: PaymentMethod) {
     if (!selectedTableId) return;
-    await deleteSession(selectedTableId);
-    await deleteOrdersForTable(selectedTableId);
+    const tableId = selectedTableId;
+    const closedOrders = tabOrdersForTable(orders, tableId);
+    const label = findFloorTable(tableId)?.label ?? tableId;
+    const receipt = buildDayReceiptFromClosedTab(
+      timestamp(),
+      tableId,
+      label,
+      method,
+      closedOrders,
+    );
+    await appendDayReceipt(receipt);
+    await deleteSession(tableId);
+    await deleteOrdersForTable(tableId);
     await refresh();
     setPayOpen(false);
     setTicketOpen(false);
     setSelectedTableId(null);
-    void method;
   }
 
   async function handleResetDemo() {
@@ -203,7 +249,11 @@ export function usePosWorkspace(options: UsePosWorkspaceOptions = {}) {
     tableHasKitchenWorkload:
       selectedTableId !== null &&
       tableHasKitchenWorkload(orders, selectedTableId),
+    businessDayKey,
+    dayReceipts,
+    dayReceiptGrandTotalCents,
     handleSelectTable,
+    handleClearTableSelection,
     handleAddMeal,
     handleDecrementMeal,
     handleSubmitOrder,

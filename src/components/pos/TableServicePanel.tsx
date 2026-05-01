@@ -23,6 +23,7 @@ export default function TableServicePanel(props: {
   onMarkDelivered: (order: OrderRow) => void;
   onOpenTicketPreview: () => void;
   onOpenPay: () => void;
+  onClearTableSelection: () => void;
 }) {
   const {
     hydrated,
@@ -40,6 +41,7 @@ export default function TableServicePanel(props: {
     onMarkDelivered,
     onOpenTicketPreview,
     onOpenPay,
+    onClearTableSelection,
   } = props;
 
   return (
@@ -53,15 +55,27 @@ export default function TableServicePanel(props: {
         </p>
       ) : (
         <>
-          <div>
-            <h2 className="text-xl font-semibold text-white">
-              Table {selectedMeta?.label ?? selectedTableId}
-            </h2>
-            <p className="text-sm text-zinc-400">
-              {session
-                ? `Guests seated · dwell ${formatDwellLabel(nowMs - session.occupiedSince)}`
-                : "Empty — adding a meal seats guests automatically."}
-            </p>
+          <div className="flex items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-semibold text-white">
+                Table {selectedMeta?.label ?? selectedTableId}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                {session
+                  ? `Guests seated · dwell ${formatDwellLabel(nowMs - session.occupiedSince)}`
+                  : "Empty — adding a meal seats guests automatically."}
+              </p>
+            </div>
+            <button
+              type="button"
+              data-testid="btn-done-table-view"
+              aria-label="Leave table and return to floor overview"
+              tabIndex={0}
+              className="shrink-0 rounded-lg border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-200 hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              onClick={onClearTableSelection}
+            >
+              Done
+            </button>
           </div>
 
           <div className="space-y-2">

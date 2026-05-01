@@ -2,17 +2,19 @@
 
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { OrderRow, TableSessionRow } from "@/lib/types";
+import type { DayReceiptRow, OrderRow, TableSessionRow } from "@/lib/types";
 import { usePosWorkspace } from "@/components/pos/usePosWorkspace";
 
 const MOCK_NOW = 1_700_000_000_000;
 
 vi.mock("@/lib/time", () => ({
   timestamp: vi.fn(() => MOCK_NOW),
+  businessDayKeyLocal: vi.fn(() => "2023-11-15"),
 }));
 
 let sessionsStore: TableSessionRow[] = [];
 let ordersStore: OrderRow[] = [];
+let receiptsStore: DayReceiptRow[] = [];
 
 vi.mock("@/lib/db", () => ({
   loadPosState: vi.fn(async () => ({
@@ -33,9 +35,16 @@ vi.mock("@/lib/db", () => ({
   deleteOrdersForTable: vi.fn(async (tableId: string) => {
     ordersStore = ordersStore.filter((o) => o.tableId !== tableId);
   }),
+  appendDayReceipt: vi.fn(async (row: DayReceiptRow) => {
+    receiptsStore.push(row);
+  }),
+  loadReceiptsForBusinessDay: vi.fn(async (dayKey: string) =>
+    receiptsStore.filter((r) => r.businessDayKey === dayKey),
+  ),
   resetAllPosData: vi.fn(async () => {
     sessionsStore = [];
     ordersStore = [];
+    receiptsStore = [];
   }),
 }));
 
@@ -43,6 +52,7 @@ describe("usePosWorkspace", () => {
   beforeEach(() => {
     sessionsStore = [];
     ordersStore = [];
+    receiptsStore = [];
     vi.stubGlobal("crypto", { randomUUID: () => "order-fixed-id" });
   });
 
@@ -59,6 +69,7 @@ describe("usePosWorkspace", () => {
       occupiedSince: MOCK_NOW - 60_000,
     });
     expect(result.current.orders).toEqual([]);
+    expect(result.current.dayReceipts).toEqual([]);
   });
 
   it("handleSelectTable updates selection", async () => {
@@ -90,6 +101,7 @@ describe("usePosWorkspace", () => {
     expect(result.current.selectedTableId).toBe(null);
     expect(result.current.sessions).toEqual({});
     await waitFor(() => expect(result.current.orders).toEqual([]));
+    expect(result.current.dayReceipts).toEqual([]);
   });
 
   it("handleAddMeal seats table and appends a draft line", async () => {
@@ -171,6 +183,19 @@ describe("usePosWorkspace", () => {
       expect(Object.keys(result.current.sessions)).toHaveLength(0);
       expect(result.current.orders).toHaveLength(0);
     });
+    await waitFor(() => expect(result.current.dayReceipts).toHaveLength(1));
+    const logged = result.current.dayReceipts[0];
+    expect(logged?.tableId).toBe("t12");
+    expect(logged?.tableLabel).toBe("T12");
+    expect(logged?.paymentMethod).toBe("card");
+    expect(logged?.totalCents).toBe(1400);
+    expect(logged?.lines).toEqual([
+      expect.objectContaining({
+        mealId: "meal-pizza",
+        quantity: 1,
+        lineTotalCents: 1400,
+      }),
+    ]);
   });
 
   it("handleDecrementMeal removes quantity from draft", async () => {

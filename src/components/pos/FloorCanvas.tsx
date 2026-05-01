@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { FLOOR_PLAN } from "@/lib/table-layout";
 import { formatDwellLabel, getFloorTableAppearance } from "@/lib/dwell-time";
 import type { TableSessionRow } from "@/lib/types";
@@ -11,8 +11,15 @@ export default function FloorCanvas(props: {
   selectedTableId: string | null;
   nowMs: number;
   onSelectTable: (tableId: string) => void;
+  onClearSelection: () => void;
 }) {
-  const { sessions, selectedTableId, nowMs, onSelectTable } = props;
+  const { sessions, selectedTableId, nowMs, onSelectTable, onClearSelection } =
+    props;
+
+  function handleFloorPaneClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return;
+    onClearSelection();
+  }
 
   function handleTableButtonKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
@@ -31,7 +38,10 @@ export default function FloorCanvas(props: {
         <div className="absolute inset-y-8 left-0 w-3 rounded-r-full bg-zinc-700" />
         <div className="absolute inset-y-12 right-0 w-10 rounded-l-3xl bg-zinc-700" />
       </div>
-      <div className="relative h-full min-h-[400px] w-full">
+      <div
+        className="relative h-full min-h-[400px] w-full"
+        onClick={handleFloorPaneClick}
+      >
         {FLOOR_PLAN.map((t) => {
           const occ = sessions[t.id];
           const dwellMs = occ ? nowMs - occ.occupiedSince : null;

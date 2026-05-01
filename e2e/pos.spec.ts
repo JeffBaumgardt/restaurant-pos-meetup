@@ -67,8 +67,14 @@ test.describe("Floor POS UX stories", () => {
 
     await page.getByTestId("btn-pay-tab").click();
     await page.getByTestId("payment-card").click();
+    await page.getByTestId("card-payment-number").fill("42424242");
+    await page.getByTestId("card-payment-cvc").fill("123");
+    await page.getByTestId("card-payment-zip").fill("94107");
+    await page.getByTestId("btn-card-payment-submit").click();
 
-    await expect(page.getByTestId("payment-modal")).toHaveCount(0);
+    await expect(page.getByTestId("payment-modal")).toHaveCount(0, {
+      timeout: 15_000,
+    });
     await expect(page.getByText(/select a table/i)).toBeVisible();
   });
 });
