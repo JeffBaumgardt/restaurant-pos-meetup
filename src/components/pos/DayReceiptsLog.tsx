@@ -35,7 +35,6 @@ export default function DayReceiptsLog(props: {
     <section
       aria-label="Receipts for today"
       className="shrink-0 border-t border-zinc-800 bg-zinc-950 px-4 py-3"
-      data-testid="day-receipts-log"
     >
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
         <div>
@@ -52,8 +51,10 @@ export default function DayReceiptsLog(props: {
               Day total
             </p>
             <p
+              role="status"
+              aria-live="polite"
+              aria-label={`Day total ${formatMoney(grandTotalCents)}`}
               className="text-lg font-semibold text-emerald-400"
-              data-testid="day-receipts-grand-total"
             >
               {formatMoney(grandTotalCents)}
             </p>

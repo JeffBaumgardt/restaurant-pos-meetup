@@ -15,10 +15,10 @@ module.exports = defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npm run dev -- -p 3100",
+    command: "npm run build && npm run start -- -p 3100",
     cwd: __dirname,
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 240_000,
   },
 });

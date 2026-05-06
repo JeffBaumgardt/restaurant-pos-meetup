@@ -26,16 +26,16 @@ export default function ReceiptModal(props: {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ticket-title"
-      tabIndex={-1}
-      data-testid="ticket-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-      onKeyDown={handleDialogKeyDown}
-    >
-      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-2xl border border-zinc-700 bg-zinc-950 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- WAI-ARIA modal on div; native <dialog> omitted for layout */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-title"
+        tabIndex={-1}
+        className="max-h-[90vh] w-full max-w-md overflow-auto rounded-2xl border border-zinc-700 bg-zinc-950 p-6 shadow-2xl outline-none"
+        onKeyDown={handleDialogKeyDown}
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="ticket-title" className="text-lg font-semibold text-white">
@@ -72,10 +72,12 @@ export default function ReceiptModal(props: {
             }),
           )}
         </ul>
-        <div className="mt-4 flex items-center justify-between text-base font-semibold text-white">
-          <span>Total</span>
-          <span data-testid="ticket-total">{formatMoney(total)}</span>
-        </div>
+        <dl className="mt-4">
+          <div className="flex items-center justify-between text-base font-semibold text-white">
+            <dt>Total</dt>
+            <dd className="m-0 tabular-nums">{formatMoney(total)}</dd>
+          </div>
+        </dl>
       </div>
     </div>
   );

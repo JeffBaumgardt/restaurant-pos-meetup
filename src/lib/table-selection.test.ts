@@ -31,13 +31,19 @@ const ordersFixture = (): OrderRow[] => [
 ];
 
 describe("table selection helpers", () => {
-  it("detects occupancy via Indexed rows mirrored into maps", () => {
+  /**
+   * The floor should know which tables are seated so highlights and counts stay in sync with saved guest sessions.
+   */
+  it("detects which tables are seated from saved guest visits", () => {
     const sessions = sessionsFixture();
     expect(isTableOccupied(sessions, "t01")).toBe(true);
     expect(isTableOccupied(sessions, "t02")).toBe(false);
     expect(getSessionForTable(sessions, "t01")?.tableId).toBe("t01");
   });
 
+  /**
+   * Unsent orders belong to exactly one table so servers never edit another party’s draft by mistake.
+   */
   it("scopes draft detection per physical table", () => {
     const orders = ordersFixture();
     expect(getDraftOrderForTable(orders, "t01")?.id).toBe("order-draft");
@@ -46,6 +52,9 @@ describe("table selection helpers", () => {
     expect(ordersForTable(orders, "t02")).toHaveLength(1);
   });
 
+  /**
+   * Tables should light up when kitchen or runners still owe work, and calm down once everything on that table is off the rail.
+   */
   it("flags tables waiting on kitchen or expo pickup", () => {
     const orders = ordersFixture();
     expect(tableHasKitchenWorkload(orders, "t01")).toBe(false);

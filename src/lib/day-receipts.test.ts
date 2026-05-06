@@ -3,6 +3,9 @@ import { buildDayReceiptFromClosedTab } from "@/lib/day-receipts";
 import type { OrderRow } from "@/lib/types";
 
 describe("buildDayReceiptFromClosedTab", () => {
+  /**
+   * Closing out a table should produce a printable-style snapshot with friendly dish names, line totals, the payment type, and the business date derived from when the check was paid.
+   */
   it("snapshots lines and totals from delivered orders", () => {
     vi.stubGlobal("crypto", { randomUUID: () => "receipt-test-id" });
 

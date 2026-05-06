@@ -6,6 +6,9 @@ import {
 } from "@/lib/dwell-time";
 
 describe("dwell-time helpers", () => {
+  /**
+   * Empty seats should read as available with calm styling instead of using the timer colors meant for occupied tables.
+   */
   it("open tables have no heat fill", () => {
     const open = getFloorTableAppearance(null);
     expect(open.style).toBeUndefined();
@@ -13,6 +16,9 @@ describe("dwell-time helpers", () => {
     expect(formatDwellLabel(null)).toMatch(/Open/i);
   });
 
+  /**
+   * As guests stay longer, the floor map color should shift smoothly from “fresh” toward “needs attention,” without jumping wildly past the worst case.
+   */
   it("ramps hue from green toward red through two minutes", () => {
     const fresh = getFloorTableAppearance(0);
     expect(fresh.style?.background).toMatch(/142/);
@@ -27,6 +33,9 @@ describe("dwell-time helpers", () => {
     expect(capped.style?.background).toEqual(old.style?.background);
   });
 
+  /**
+   * Hosts think in minutes and seconds; the label should pad single-digit seconds so it reads like a clock.
+   */
   it("formats mm:ss dwell timers", () => {
     expect(formatDwellLabel(125_000)).toBe("2:05");
     expect(formatDwellLabel(3_000)).toBe("0:03");

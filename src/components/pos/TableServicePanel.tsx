@@ -45,7 +45,10 @@ export default function TableServicePanel(props: {
   } = props;
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 lg:w-[380px]">
+    <aside
+      aria-label="Orders for selected table"
+      className="flex w-full shrink-0 flex-col gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 lg:w-[380px]"
+    >
       {!hydrated ? (
         <p className="text-sm text-zinc-400">Loading local data…</p>
       ) : !selectedTableId ? (
@@ -68,7 +71,6 @@ export default function TableServicePanel(props: {
             </div>
             <button
               type="button"
-              data-testid="btn-done-table-view"
               aria-label="Leave table and return to floor overview"
               tabIndex={0}
               className="shrink-0 rounded-lg border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-200 hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
@@ -85,7 +87,6 @@ export default function TableServicePanel(props: {
                 <button
                   key={meal.id}
                   type="button"
-                  data-testid={`meal-${meal.id}`}
                   aria-label={`Add ${meal.name}`}
                   className="flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-left text-sm hover:border-emerald-500 hover:bg-zinc-900"
                   onClick={() => void onAddMeal(meal.id)}
@@ -142,7 +143,6 @@ export default function TableServicePanel(props: {
             )}
             <button
               type="button"
-              data-testid="btn-submit-order"
               className="w-full rounded-xl bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-700"
               disabled={!draft || draft.lines.length === 0}
               onClick={() => void onSubmitOrder()}
@@ -186,17 +186,13 @@ export default function TableServicePanel(props: {
           <div className="mt-auto space-y-3 border-t border-zinc-800 pt-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-zinc-400">Open check</span>
-              <span
-                className="text-lg font-semibold text-white"
-                data-testid="tab-total"
-              >
+              <span className="text-lg font-semibold text-white tabular-nums">
                 {formatMoney(tabTotal)}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                data-testid="btn-generate-ticket"
                 className="flex-1 rounded-xl border border-zinc-600 px-3 py-2 text-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={tabTotal <= 0}
                 onClick={onOpenTicketPreview}
@@ -205,7 +201,6 @@ export default function TableServicePanel(props: {
               </button>
               <button
                 type="button"
-                data-testid="btn-pay-tab"
                 className="flex-1 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
                 disabled={tabTotal <= 0}
                 onClick={onOpenPay}

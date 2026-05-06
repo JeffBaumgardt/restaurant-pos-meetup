@@ -16,7 +16,7 @@ export async function simulateCardGatewayAuthorization(
   cardNumberDigits: string,
 ): Promise<CardGatewayResult> {
   await new Promise<void>((resolve) => {
-    window.setTimeout(resolve, GATEWAY_DELAY_MS);
+    globalThis.setTimeout(resolve, GATEWAY_DELAY_MS);
   });
 
   if (cardNumberDigits === DEMO_CARD_DECLINE_PAN) {

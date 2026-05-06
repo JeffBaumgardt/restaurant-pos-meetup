@@ -16,7 +16,6 @@ export default function KitchenDock(props: {
     <section
       aria-label="Kitchen queue"
       className="shrink-0 border-t border-zinc-800 bg-zinc-900 px-4 py-3"
-      data-testid="kitchen-dock"
     >
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
@@ -34,7 +33,6 @@ export default function KitchenDock(props: {
           return (
             <div
               key={o.id}
-              data-testid={`kitchen-order-${o.id}`}
               className="min-w-[180px] rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs shadow-inner"
             >
               <div className="flex items-center justify-between gap-2">

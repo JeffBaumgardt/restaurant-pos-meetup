@@ -56,6 +56,9 @@ describe("usePosWorkspace", () => {
     vi.stubGlobal("crypto", { randomUUID: () => "order-fixed-id" });
   });
 
+  /**
+   * When saved tables exist on disk, the workspace should finish loading and mirror those seated tables without guessing extra orders or receipts.
+   */
   it("hydrates from loadPosState", async () => {
     sessionsStore = [{ tableId: "t01", occupiedSince: MOCK_NOW - 60_000 }];
 
@@ -72,6 +75,9 @@ describe("usePosWorkspace", () => {
     expect(result.current.dayReceipts).toEqual([]);
   });
 
+  /**
+   * Choosing a table updates which party the POS thinks you are serving so menus and totals line up with that station.
+   */
   it("handleSelectTable updates selection", async () => {
     const { result } = renderHook(() =>
       usePosWorkspace({ kitchenPollIntervalMs: false }),
@@ -84,6 +90,9 @@ describe("usePosWorkspace", () => {
     expect(result.current.selectedTableId).toBe("t05");
   });
 
+  /**
+   * Resetting the demo should wipe stored visits and checks and drop table selection so trainers start from a clean slate.
+   */
   it("handleResetDemo clears stores and selection", async () => {
     sessionsStore = [{ tableId: "t01", occupiedSince: MOCK_NOW }];
     const { result } = renderHook(() =>
@@ -104,6 +113,9 @@ describe("usePosWorkspace", () => {
     expect(result.current.dayReceipts).toEqual([]);
   });
 
+  /**
+   * Adding food on an empty table should seat that party automatically and build an unsent ticket line item list you can keep editing.
+   */
   it("handleAddMeal seats table and appends a draft line", async () => {
     const { result } = renderHook(() =>
       usePosWorkspace({ kitchenPollIntervalMs: false }),
@@ -125,6 +137,9 @@ describe("usePosWorkspace", () => {
     expect(result.current.session?.tableId).toBe("t10");
   });
 
+  /**
+   * Sending the ticket removes it from “still editing” state and turns it into an active kitchen job with timestamps filled in.
+   */
   it("handleSubmitOrder sends draft to kitchen", async () => {
     const { result } = renderHook(() =>
       usePosWorkspace({ kitchenPollIntervalMs: false }),
@@ -151,6 +166,9 @@ describe("usePosWorkspace", () => {
     expect(cooking[0]?.cookingStartedAt).toBe(MOCK_NOW);
   });
 
+  /**
+   * Taking payment closes modals, frees the table, clears checks for that visit, and writes an end-of-day style receipt using how they paid.
+   */
   it("handlePay clears session, orders, and selection", async () => {
     sessionsStore = [{ tableId: "t12", occupiedSince: MOCK_NOW }];
     ordersStore = [
@@ -198,6 +216,9 @@ describe("usePosWorkspace", () => {
     ]);
   });
 
+  /**
+   * Removing plates from the draft drops quantities until the dish disappears entirely once count hits zero.
+   */
   it("handleDecrementMeal removes quantity from draft", async () => {
     const { result } = renderHook(() =>
       usePosWorkspace({ kitchenPollIntervalMs: false }),
@@ -228,6 +249,9 @@ describe("usePosWorkspace", () => {
     );
   });
 
+  /**
+   * Marking food delivered updates the runner board so everyone sees that table’s plates reached the dining room.
+   */
   it("handleMarkDelivered updates order status", async () => {
     sessionsStore = [{ tableId: "t14", occupiedSince: MOCK_NOW }];
     ordersStore = [

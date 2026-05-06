@@ -32,12 +32,13 @@ export default function FloorCanvas(props: {
     <section
       aria-label="Dining room layout"
       className="relative min-h-[420px] flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-b from-amber-950/40 to-zinc-900 shadow-inner"
-      data-testid="floor-canvas"
     >
       <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-soft-light">
         <div className="absolute inset-y-8 left-0 w-3 rounded-r-full bg-zinc-700" />
         <div className="absolute inset-y-12 right-0 w-10 rounded-l-3xl bg-zinc-700" />
       </div>
+      {/* Floor pane clears selection on backdrop click; tables are real <button>s for keyboard users. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className="relative h-full min-h-[400px] w-full"
         onClick={handleFloorPaneClick}
@@ -68,7 +69,6 @@ export default function FloorCanvas(props: {
             <button
               key={t.id}
               type="button"
-              data-testid={`table-${t.id}`}
               aria-label={`Table ${t.label}${occ ? ", occupied" : ", empty"}`}
               aria-pressed={selected}
               tabIndex={0}

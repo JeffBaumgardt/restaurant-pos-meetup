@@ -1,15 +1,18 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { PaymentMethod } from "@/lib/types";
 import { DEMO_CARD_DECLINE_PAN, simulateCardGatewayAuthorization } from "@/lib/card-gateway-simulate";
+import {
+  isCardPaymentFormComplete,
+  sanitizeCardNumberInput,
+  sanitizeCvcInput,
+  sanitizeZipInput,
+} from "@/lib/card-payment-fields";
 import { formatMoney } from "@/lib/format-money";
 
 type PayStep = "choose" | "card-details" | "processing" | "declined";
-
-function digitsOnly(value: string, maxLen: number): string {
-  return value.replace(/\D/g, "").slice(0, maxLen);
-}
 
 export default function PaymentModal(props: {
   open: boolean;
@@ -31,8 +34,7 @@ export default function PaymentModal(props: {
     modalActiveRef.current = open;
   }, [open]);
 
-  const cardComplete =
-    cardNumber.length === 8 && cvc.length === 3 && zip.length === 5;
+  const cardComplete = isCardPaymentFormComplete(cardNumber, cvc, zip);
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Escape") return;
@@ -76,17 +78,17 @@ export default function PaymentModal(props: {
   if (!open) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pay-title"
-      aria-busy={step === "processing"}
-      tabIndex={-1}
-      data-testid="payment-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-      onKeyDown={handleDialogKeyDown}
-    >
-      <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- WAI-ARIA modal on div; native <dialog> omitted for layout */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pay-title"
+        aria-busy={step === "processing"}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-6 shadow-2xl outline-none"
+        onKeyDown={handleDialogKeyDown}
+      >
         <h2 id="pay-title" className="text-lg font-semibold text-white">
           Take payment
         </h2>
@@ -102,7 +104,6 @@ export default function PaymentModal(props: {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                data-testid="payment-cash"
                 className="rounded-xl border border-zinc-600 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
                 onClick={() => onPay("cash")}
               >
@@ -110,7 +111,6 @@ export default function PaymentModal(props: {
               </button>
               <button
                 type="button"
-                data-testid="payment-card"
                 className="rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
                 onClick={() => setStep("card-details")}
               >
@@ -141,28 +141,42 @@ export default function PaymentModal(props: {
                 >
                   Card number
                 </label>
-                <input
-                  id="card-payment-number"
-                  data-testid="card-payment-number"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  aria-describedby="card-payment-number-hint"
-                  className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white outline-none ring-emerald-500/0 transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
-                  placeholder="12345678"
-                  maxLength={8}
-                  value={cardNumber}
-                  onChange={(e) =>
-                    setCardNumber(digitsOnly(e.target.value, 8))
-                  }
-                />
-                <p id="card-payment-number-hint" className="mt-1 text-[11px] text-zinc-600">
-                  Eight digits. Use{" "}
-                  <span className="font-mono text-zinc-500">
-                    {DEMO_CARD_DECLINE_PAN}
-                  </span>{" "}
-                  to simulate a decline.
-                </p>
+                <div className="mt-1 flex gap-3">
+                  <Image
+                    src="/credit-card-generic.svg"
+                    alt=""
+                    width={120}
+                    height={76}
+                    className="h-[52px] w-auto shrink-0 self-center rounded-md border border-zinc-700 bg-zinc-900"
+                    draggable={false}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <input
+                      id="card-payment-number"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      aria-describedby="card-payment-number-hint"
+                      className="w-full rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white outline-none ring-emerald-500/0 transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+                      placeholder="12345678"
+                      maxLength={8}
+                      value={cardNumber}
+                      onChange={(e) =>
+                        setCardNumber(sanitizeCardNumberInput(e.target.value))
+                      }
+                    />
+                    <p
+                      id="card-payment-number-hint"
+                      className="mt-1 text-[11px] text-zinc-600"
+                    >
+                      Eight digits. Use{" "}
+                      <span className="font-mono text-zinc-500">
+                        {DEMO_CARD_DECLINE_PAN}
+                      </span>{" "}
+                      to simulate a decline.
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -174,7 +188,6 @@ export default function PaymentModal(props: {
                   </label>
                   <input
                     id="card-payment-cvc"
-                    data-testid="card-payment-cvc"
                     type="text"
                     inputMode="numeric"
                     autoComplete="off"
@@ -182,7 +195,7 @@ export default function PaymentModal(props: {
                     className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
                     placeholder="123"
                     value={cvc}
-                    onChange={(e) => setCvc(digitsOnly(e.target.value, 3))}
+                    onChange={(e) => setCvc(sanitizeCvcInput(e.target.value))}
                   />
                 </div>
                 <div>
@@ -194,7 +207,6 @@ export default function PaymentModal(props: {
                   </label>
                   <input
                     id="card-payment-zip"
-                    data-testid="card-payment-zip"
                     type="text"
                     inputMode="numeric"
                     autoComplete="postal-code"
@@ -202,7 +214,7 @@ export default function PaymentModal(props: {
                     className="mt-1 w-full rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
                     placeholder="94107"
                     value={zip}
-                    onChange={(e) => setZip(digitsOnly(e.target.value, 5))}
+                    onChange={(e) => setZip(sanitizeZipInput(e.target.value))}
                   />
                 </div>
               </div>
@@ -210,7 +222,6 @@ export default function PaymentModal(props: {
             <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
-                data-testid="btn-card-payment-submit"
                 disabled={!cardComplete}
                 className="w-full min-h-11 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
                 onClick={() => void handleSubmitCardPayment()}
@@ -219,7 +230,6 @@ export default function PaymentModal(props: {
               </button>
               <button
                 type="button"
-                data-testid="btn-card-payment-back"
                 className="w-full min-h-11 rounded-xl border border-zinc-600 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
                 onClick={() => setStep("choose")}
               >
@@ -238,8 +248,11 @@ export default function PaymentModal(props: {
 
         {step === "processing" && (
           <div
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+            aria-label="Processing card payment"
             className="mt-8 flex flex-col items-center gap-4 py-4"
-            data-testid="card-payment-processing"
           >
             <div
               className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-400"
@@ -255,7 +268,7 @@ export default function PaymentModal(props: {
         )}
 
         {step === "declined" && declineMessage && (
-          <div data-testid="card-payment-declined" className="mt-6 space-y-4">
+          <div className="mt-6 space-y-4">
             <div
               role="alert"
               aria-live="assertive"

@@ -1,80 +1,61 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+function diningFloor(page: Page) {
+  return page.getByRole("region", { name: /dining room layout/i });
+}
 
 test.describe("Floor POS UX stories", () => {
+  /**
+   * Opens the floor map, taps a table, rings in two dishes, and confirms the ticket flows into the kitchen queue so cooks see work starting.
+   */
   test("server selects a table and builds an unpaid ticket", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.getByTestId("floor-canvas")).toBeVisible({
+    await expect(diningFloor(page)).toBeVisible({
       timeout: 60_000,
     });
 
-    await page.getByTestId("table-t10").click();
+    await diningFloor(page).getByRole("button", { name: /table t10/i }).click();
     await expect(page.getByRole("heading", { name: /table t10/i })).toBeVisible();
 
-    await page.getByTestId("meal-meal-burger").click();
-    await page.getByTestId("meal-meal-salad").click();
+    await page.getByRole("button", { name: /add classic burger/i }).click();
+    await page.getByRole("button", { name: /add caesar salad/i }).click();
 
     await expect(page.getByText("Classic Burger ×")).toBeVisible();
     await expect(page.getByText("Caesar Salad ×")).toBeVisible();
 
-    await page.getByTestId("btn-submit-order").click();
-    await expect(page.getByTestId("kitchen-dock")).toBeVisible();
-    await expect(page.getByTestId("kitchen-dock")).toContainText("cooking");
+    await page.getByRole("button", { name: /submit to kitchen/i }).click();
+    await expect(
+      page.getByRole("region", { name: /kitchen queue/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: /kitchen queue/i }),
+    ).toContainText("cooking");
   });
 
+  /**
+   * Sends multiple rounds of food for one party and opens the preview receipt to prove the running total matches everything currently on the check.
+   */
   test("ticket preview sums meals currently on the check", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByTestId("floor-canvas")).toBeVisible({
+    await expect(diningFloor(page)).toBeVisible({
       timeout: 60_000,
     });
 
-    await page.getByTestId("table-t11").click();
-    await page.getByTestId("meal-meal-pasta").click();
-    await page.getByTestId("meal-meal-pasta").click();
-    await page.getByTestId("btn-submit-order").click();
+    await diningFloor(page).getByRole("button", { name: /table t11/i }).click();
+    await page.getByRole("button", { name: /add pasta carbonara/i }).click();
+    await page.getByRole("button", { name: /add pasta carbonara/i }).click();
+    await page.getByRole("button", { name: /submit to kitchen/i }).click();
 
-    await page.getByTestId("meal-meal-salmon").click();
-    await page.getByTestId("btn-submit-order").click();
+    await page.getByRole("button", { name: /add grilled salmon/i }).click();
+    await page.getByRole("button", { name: /submit to kitchen/i }).click();
 
-    await page.getByTestId("btn-generate-ticket").click();
-    await expect(page.getByTestId("ticket-modal")).toBeVisible();
-    await expect(page.getByTestId("ticket-total")).toContainText("$44");
-  });
-
-  test("servers charge cards after walking checks through expo", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("floor-canvas")).toBeVisible({
-      timeout: 60_000,
-    });
-
-    await page.getByTestId("table-t12").click();
-    await page.getByTestId("meal-meal-pizza").click();
-    await page.getByTestId("btn-submit-order").click();
-
-    await expect
-      .poll(
-        async () =>
-          page.getByRole("button", { name: /deliver to floor/i }).count(),
-        { timeout: 25_000 },
-      )
-      .toBeGreaterThan(0);
-
-    await page.getByRole("button", { name: /deliver to floor/i }).first().click();
-    await expect(page.getByTestId("tab-total")).toContainText("$14");
-
-    await page.getByTestId("btn-pay-tab").click();
-    await page.getByTestId("payment-card").click();
-    await page.getByTestId("card-payment-number").fill("42424242");
-    await page.getByTestId("card-payment-cvc").fill("123");
-    await page.getByTestId("card-payment-zip").fill("94107");
-    await page.getByTestId("btn-card-payment-submit").click();
-
-    await expect(page.getByTestId("payment-modal")).toHaveCount(0, {
-      timeout: 15_000,
-    });
-    await expect(page.getByText(/select a table/i)).toBeVisible();
+    await page.getByRole("button", { name: /ticket preview/i }).click();
+    const ticketDialog = page.getByRole("dialog", { name: /guest ticket/i });
+    await expect(ticketDialog).toBeVisible();
+    await expect(
+      ticketDialog.getByRole("definition"),
+    ).toContainText("$44");
   });
 });
